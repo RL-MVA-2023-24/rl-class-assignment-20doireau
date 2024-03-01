@@ -6,7 +6,7 @@ import torch.optim as optim
 import numpy as np
 from sklearn.ensemble import ExtraTreesRegressor
 from joblib import dump, load
-from tqdm import tqdm
+#from tqdm import tqdm
 
 env = TimeLimit(
     env=HIVPatient(domain_randomization=False), max_episode_steps=200
@@ -101,7 +101,7 @@ class ProjectAgent:
         self.collect_samples(horizon)
         self.FQI(nb_iterations)
 
-        for step in tqdm(range(nb_steps)):
+        for step in range(nb_steps):
             self.collect_samples(n_update, epsilon=0.85)
             self.FQI(nb_iterations)
 
@@ -117,7 +117,7 @@ class ProjectAgent:
           self.collect_samples(horizon)
           self.Q = self.FQI(nb_iterations)
 
-          for step in tqdm(range(nb_steps)):
+          for step in range(nb_steps):
               self.collect_samples(n_update, epsilon=0.85)
               self.Q = self.FQI(nb_iterations)
 
