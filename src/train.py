@@ -19,9 +19,9 @@ env = TimeLimit(
 # ENJOY!
 class ProjectAgent:
 
-    def __init__(self, env):
+    def __init__(self):
         self.Q = None
-        self.env = env
+        self.env_n_action_space = 4
         self.S = []
         self.A = []
         self.R = []
@@ -31,7 +31,7 @@ class ProjectAgent:
 
     def greedy_action(self,s):
         Qsa = []
-        nb_actions = self.env.action_space.n
+        nb_actions = self.env_n_action_space
         for a in range(nb_actions):
             sa = np.append(s,a).reshape(1, -1)
             Qsa.append(self.Q.predict(sa))
@@ -39,7 +39,7 @@ class ProjectAgent:
     
     def greedy_action_ensemble(self,s):
         Qsa_mean = []
-        nb_actions = self.env.action_space.n
+        nb_actions = self.env_n_action_space
         for Q in self.Q_list:
           Qsa = []
           for a in range(nb_actions):
@@ -49,7 +49,7 @@ class ProjectAgent:
         Qsa_mean = np.mean(Qsa_mean, axis=0)
         return np.argmax(Qsa_mean)
 
-    def collect_samples(self, horizon, epsilon=0.0, print_done_states=False):
+    def collect_samples(self, env, horizon, epsilon=0.0, print_done_states=False):
         s = self.env.reset()[0]
         for _ in range(horizon):
             if np.random.rand() < epsilon:
@@ -57,7 +57,7 @@ class ProjectAgent:
             else:
                 a = self.env.action_space.sample()
 
-            s2, r, done, trunc, _ = self.env.step(a)
+            s2, r, done, trunc, _ = env.step(a)
             self.S.append(s)
             self.A.append(a)
             self.R.append(r)
@@ -65,14 +65,14 @@ class ProjectAgent:
             self.D.append(done)
 
             if done or trunc:
-                s = self.env.reset()[0]
+                s = env.reset()[0]
                 if done and print_done_states:
                     print("done!")
             else:
                 s = s2
 
     def FQI(self, iterations, gamma=0.9):
-        nb_actions = self.env.action_space.n
+        nb_actions = self.env_n_action_space
         nb_samples = len(self.S)
 
         S = np.array(self.S)
@@ -97,28 +97,28 @@ class ProjectAgent:
             Q.fit(SA, value)
         self.Q = Q
 
-    def train(self, horizon, n_update=500, nb_iterations=30, nb_steps=17):
-        self.collect_samples(horizon)
+    def train(self, env, horizon, n_update=500, nb_iterations=30, nb_steps=17):
+        self.collect_samples(env, horizon)
         self.FQI(nb_iterations)
 
         for step in range(nb_steps):
-            self.collect_samples(n_update, epsilon=0.85)
+            self.collect_samples(env, n_update, epsilon=0.85)
             self.FQI(nb_iterations)
 
         return self.Q
     
-    def train_ensemble(self, horizon, n_ensemble = 5, n_update=500, nb_iterations=30, nb_steps=17):
+    def train_ensemble(self, env, horizon, n_ensemble = 5, n_update=500, nb_iterations=30, nb_steps=17):
         for _ in range(n_ensemble):
           self.S = []
           self.A = []
           self.R = []
           self.S2 = []
           self.D = []
-          self.collect_samples(horizon)
+          self.collect_samples(env, horizon)
           self.Q = self.FQI(nb_iterations)
 
           for step in range(nb_steps):
-              self.collect_samples(n_update, epsilon=0.85)
+              self.collect_samples(env, n_update, epsilon=0.85)
               self.Q = self.FQI(nb_iterations)
 
           self.Q_list.append(self.Q)
@@ -127,7 +127,7 @@ class ProjectAgent:
 
     def act(self, observation, use_random=False):
         if use_random:
-            return np.random.randint(self.env.action_space.n)
+            return np.random.randint(self.env_n_action_space)
         else:
             return self.greedy_action(observation)
 
